@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:anchorkeep/core/crypto/aead.dart';
 import 'package:anchorkeep/core/crypto/kdf.dart';
+import 'package:anchorkeep/core/solana/vault_keypair.dart';
 import 'package:anchorkeep/core/vault/vault_file.dart';
 import 'package:cryptography/cryptography.dart';
 
@@ -26,7 +27,8 @@ class VaultSession {
   }
 }
 
-/// Новый сейф: случайные vaultId, VK и соль. revision = 0 до первого save.
+/// Новый сейф: случайные vaultId, VK, соль и devnet-ключ.
+/// revision = 0 до первого save.
 Future<VaultSession> createVault(String password, {KdfParams? kdf}) async {
   final params = kdf ?? KdfParams.defaults();
   final vaultId = randomBytes(16);
@@ -41,6 +43,8 @@ Future<VaultSession> createVault(String password, {KdfParams? kdf}) async {
   return VaultSession(header, vaultKey, {
     'entries': <Object?>[],
     'settings': {'autoLockMinutes': 5},
+    // Devnet-ключ для заверения версий — только внутри payload (AK-31)
+    'solana': await newSolanaSection(),
   });
 }
 
