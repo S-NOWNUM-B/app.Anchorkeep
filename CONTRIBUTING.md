@@ -93,6 +93,11 @@ flutter analyze
 dart format --set-exit-if-changed .
 flutter test
 
+# Интеграционный тест core/solana против devnet (нужен кошелёк с devnet-SOL;
+# без переменной тест пропускается, в CI не запускается)
+ANCHORKEEP_DEVNET_KEYPAIR=~/.config/solana/id.json \
+  flutter test test/core/solana/vault_registry_devnet_test.dart
+
 # Программа (macOS / Linux / WSL)
 cd program
 anchor build && anchor test --validator legacy
