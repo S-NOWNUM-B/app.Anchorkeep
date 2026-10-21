@@ -169,6 +169,7 @@ void main() {
       expect(r.version, 42);
       expect(r.hash, hash);
       expect(r.updatedAt, DateTime.utc(2026, 10, 21));
+      expect(r.bump, 254);
     });
 
     test('чужой discriminator → FormatException', () {
