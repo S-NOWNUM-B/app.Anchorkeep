@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Интеграционный тест против devnet: создаёт и обновляет VaultRecord.
-// Нужны сеть и кошелёк с devnet-SOL, поэтому по умолчанию пропускается:
+// Интеграционные тесты против devnet, по умолчанию пропускаются.
+// Чтение постоянной тестовой записи — нужна только сеть:
+//   ANCHORKEEP_DEVNET=1 flutter test test/core/solana/vault_registry_devnet_test.dart
+// Создание и обновление записи — нужен кошелёк с devnet-SOL:
 //   ANCHORKEEP_DEVNET_KEYPAIR=~/.config/solana/id.json \
 //     flutter test test/core/solana/vault_registry_devnet_test.dart
 import 'dart:convert';
@@ -12,10 +14,20 @@ import 'dart:typed_data';
 import 'package:anchorkeep/core/solana/solana_config.dart';
 import 'package:anchorkeep/core/solana/vault_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:solana/dto.dart';
 import 'package:solana/solana.dart';
 
 final _keypairPath = Platform.environment['ANCHORKEEP_DEVNET_KEYPAIR'];
+final _devnet = Platform.environment['ANCHORKEEP_DEVNET'] == '1';
+
+/// Постоянная запись в devnet для теста чтения, создана 2026-10-21 кошельком
+/// FZ3G…: vaultId 00..0f, version 1, hash = sha256('anchorkeep devnet fixture').
+/// Не заверять поверх неё новые версии — тест сломается.
+final fixtureOwner = Ed25519HDPublicKey.fromBase58(
+  'FZ3GPBucdPk3J135uzNgSKwGKMoA3voqypEz3vKXgZcz',
+);
+final fixtureVaultId = List<int>.generate(16, (i) => i);
+const fixtureHashHex =
+    '0e1b184a61564ebee0bc7a177d135592919e83c62f9c8fd55d3072b8ade04e5e';
 
 /// Кошелёк solana CLI: первые 32 байта — seed. Keypair хранит ссылку на seed,
 /// поэтому затираем только исходный буфер (ADR 0003).
@@ -36,30 +48,54 @@ List<int> randomBytes(int n) {
   return List<int>.generate(n, (_) => rnd.nextInt(256));
 }
 
-Future<VaultRecord> fetchRecord(
-  SolanaClient client,
-  Ed25519HDPublicKey owner,
-  List<int> vaultId,
-) async {
-  final address = await vaultRecordAddress(owner, vaultId);
-  final info = await client.rpcClient.getAccountInfo(
-    address.toBase58(),
-    encoding: Encoding.base64,
-    commitment: Commitment.confirmed,
-  );
-  final data = info.value!.data! as BinaryAccountData;
-  return VaultRecord.decode(data.data);
-}
+String hex(List<int> bytes) =>
+    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
+VaultRegistry devnetRegistry() => VaultRegistry(
+  SolanaClient(
+    rpcUrl: SolanaConfig.rpcUrl,
+    websocketUrl: SolanaConfig.websocketUrl,
+  ),
+);
 
 void main() {
   test(
+    'devnet: чтение постоянной записи VaultRecord',
+    () async {
+      final record = await devnetRegistry().fetchRecord(
+        fixtureOwner,
+        fixtureVaultId,
+      );
+
+      expect(record, isNotNull);
+      expect(record!.owner, fixtureOwner);
+      expect(record.vaultId, fixtureVaultId);
+      expect(record.version, 1);
+      expect(hex(record.hash), fixtureHashHex);
+      expect(record.updatedAt.isAfter(DateTime.utc(2026, 10, 21)), isTrue);
+      expect(record.bump, inInclusiveRange(0, 255));
+    },
+    skip: _devnet ? false : 'нет ANCHORKEEP_DEVNET=1',
+    timeout: const Timeout(Duration(minutes: 1)),
+  );
+
+  test(
+    'devnet: незаверенный сейф → null',
+    () async {
+      final record = await devnetRegistry().fetchRecord(
+        fixtureOwner,
+        randomBytes(vaultIdLength),
+      );
+      expect(record, isNull);
+    },
+    skip: _devnet ? false : 'нет ANCHORKEEP_DEVNET=1',
+    timeout: const Timeout(Duration(minutes: 1)),
+  );
+
+  test(
     'devnet: initialize_vault создаёт запись, commit_version обновляет',
     () async {
-      final client = SolanaClient(
-        rpcUrl: SolanaConfig.rpcUrl,
-        websocketUrl: SolanaConfig.websocketUrl,
-      );
-      final registry = VaultRegistry(client);
+      final registry = devnetRegistry();
       final owner = await loadKeypair(_keypairPath!);
       final vaultId = randomBytes(vaultIdLength);
 
@@ -70,7 +106,7 @@ void main() {
         hash: firstHash,
         version: 3,
       );
-      var record = await fetchRecord(client, owner.publicKey, vaultId);
+      var record = (await registry.fetchRecord(owner.publicKey, vaultId))!;
       expect(record.owner, owner.publicKey);
       expect(record.vaultId, vaultId);
       expect(record.version, 3);
@@ -83,7 +119,7 @@ void main() {
         hash: secondHash,
         version: 7,
       );
-      record = await fetchRecord(client, owner.publicKey, vaultId);
+      record = (await registry.fetchRecord(owner.publicKey, vaultId))!;
       expect(record.version, 7);
       expect(record.hash, secondHash);
 
@@ -98,7 +134,7 @@ void main() {
         // VersionMismatch = 6001 = 0x1771 в логах симуляции
         throwsA(predicate((Object e) => e.toString().contains('0x1771'))),
       );
-      record = await fetchRecord(client, owner.publicKey, vaultId);
+      record = (await registry.fetchRecord(owner.publicKey, vaultId))!;
       expect(record.hash, secondHash);
     },
     skip: _keypairPath == null ? 'нет ANCHORKEEP_DEVNET_KEYPAIR' : false,

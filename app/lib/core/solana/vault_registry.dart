@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:anchorkeep/core/solana/solana_config.dart';
 import 'package:solana/anchor.dart';
+import 'package:solana/dto.dart' show BinaryAccountData, Encoding;
 import 'package:solana/encoder.dart';
 import 'package:solana/solana.dart';
 
@@ -92,6 +93,7 @@ class VaultRecord {
     required this.version,
     required this.hash,
     required this.updatedAt,
+    required this.bump,
   });
 
   /// Разбор данных аккаунта. Чужой аккаунт или битые данные →
@@ -116,6 +118,7 @@ class VaultRecord {
         view.getInt64(96, Endian.little) * 1000,
         isUtc: true,
       ),
+      bump: bytes[104],
     );
   }
 
@@ -128,6 +131,9 @@ class VaultRecord {
   /// SHA-256 заверенного файла.
   final Uint8List hash;
   final DateTime updatedAt;
+
+  /// Bump PDA, сохранённый программой.
+  final int bump;
 }
 
 /// Отправка инструкций `vault_registry`. Ключ владельца не хранится —
@@ -168,6 +174,32 @@ class VaultRegistry {
       version: version,
     ),
   );
+
+  /// Запись сейфа из цепочки; `null`, если сейф ещё не заверяли.
+  /// Ошибки сети пробрасываются как есть — статус Offline решает вызывающий
+  /// код (AK-43). Аккаунт не нашей программы или битые данные →
+  /// [FormatException].
+  Future<VaultRecord?> fetchRecord(
+    Ed25519HDPublicKey owner,
+    List<int> vaultId,
+  ) async {
+    final address = await vaultRecordAddress(owner, vaultId);
+    final info = await _client.rpcClient.getAccountInfo(
+      address.toBase58(),
+      encoding: Encoding.base64,
+      commitment: Commitment.confirmed,
+    );
+    final account = info.value;
+    if (account == null) return null;
+    if (account.owner != SolanaConfig.programId) {
+      throw const FormatException('VaultRecord: аккаунт не vault_registry');
+    }
+    final data = account.data;
+    if (data is! BinaryAccountData) {
+      throw const FormatException('VaultRecord: неожиданная кодировка');
+    }
+    return VaultRecord.decode(data.data);
+  }
 
   Future<String> _send(Ed25519HDKeyPair owner, Instruction ix) =>
       _client.sendAndConfirmTransaction(
