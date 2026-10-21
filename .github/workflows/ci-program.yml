@@ -19,8 +19,12 @@ defaults:
   run:
     working-directory: program
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,11 +40,27 @@ jobs:
         run: |
           sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      # avm собирается из исходников ~2 минуты, поэтому кэшируем его и
+      # установленный Anchor; ключ включает версию.
+      - name: Кэш avm и Anchor
+        id: avm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/avm
+            ~/.cargo/bin/anchor
+            ~/.avm
+          key: avm-${{ runner.os }}-${{ env.ANCHOR_VERSION }}
       - name: Установить Anchor через avm
+        if: steps.avm-cache.outputs.cache-hit != 'true'
         run: |
           cargo install --git https://github.com/solana-foundation/anchor avm --force
           avm install ${ANCHOR_VERSION}
+      - name: Выбрать версию Anchor
+        run: |
           avm use ${ANCHOR_VERSION}
+          echo "$HOME/.avm/bin" >> "$GITHUB_PATH"
+          anchor --version
       # Одноразовый ключ только для localnet-тестов
       - run: solana-keygen new --no-bip39-passphrase --silent -o ~/.config/solana/id.json
       - run: yarn install --frozen-lockfile
