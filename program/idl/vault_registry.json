@@ -1,0 +1,238 @@
+{
+  "address": "Y8ik6bx8kAoeMr3Ugu7SmhKtvChTkBTd1hZLdWggHNg",
+  "metadata": {
+    "name": "vault_registry",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "commit_version",
+      "docs": [
+        "Заверяет новую версию файла. Версия только растёт: защита от гонок",
+        "двух устройств и от заверения старого файла поверх нового."
+      ],
+      "discriminator": [
+        223,
+        216,
+        39,
+        114,
+        120,
+        241,
+        138,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "record.owner",
+                "account": "VaultRecord"
+              },
+              {
+                "kind": "account",
+                "path": "record.vault_id",
+                "account": "VaultRecord"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "record"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "new_version",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_vault",
+      "docs": [
+        "Создаёт запись сейфа. `version` — `revision` заверяемого файла (ADR 0006)."
+      ],
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "vault_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "vault_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "version",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "VaultRecord",
+      "discriminator": [
+        47,
+        1,
+        218,
+        116,
+        82,
+        70,
+        124,
+        119
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Only the vault owner can commit a new version"
+    },
+    {
+      "code": 6001,
+      "name": "VersionMismatch",
+      "msg": "New version must be greater than the anchored one"
+    }
+  ],
+  "types": [
+    {
+      "name": "VaultRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "version",
+            "docs": [
+              "`revision` заверенного файла (ADR 0006)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "VAULT_SEED",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116]"
+    }
+  ]
+}

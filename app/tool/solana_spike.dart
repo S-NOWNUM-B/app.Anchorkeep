@@ -19,21 +19,19 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:anchorkeep/core/solana/solana_config.dart';
 import 'package:solana/anchor.dart';
 import 'package:solana/dto.dart';
 import 'package:solana/encoder.dart';
 import 'package:solana/solana.dart';
 
-const _devnetUrl = 'https://api.devnet.solana.com';
-
-// Program ID vault_registry из program/Anchor.toml
-const _programId = 'Y8ik6bx8kAoeMr3Ugu7SmhKtvChTkBTd1hZLdWggHNg';
-
 const _airdropLamports = lamportsPerSol ~/ 2;
 const _transferLamports = 1000000; // 0.001 SOL
 
 Future<void> main(List<String> args) async {
-  final rpcUrl = Uri.parse(_arg(args, '--url') ?? _devnetUrl);
+  final rpcUrl = Uri.parse(
+    _arg(args, '--url') ?? SolanaConfig.rpcUrl.toString(),
+  );
   final client = SolanaClient(rpcUrl: rpcUrl, websocketUrl: _wsUrl(rpcUrl));
   _log('cluster', rpcUrl.toString());
 
@@ -97,7 +95,7 @@ Future<void> main(List<String> args) async {
 /// Собирает initialize_vault вручную; если программа задеплоена — отправляет
 /// и сверяет VaultRecord с отправленными аргументами.
 Future<void> _vaultRegistry(SolanaClient client, Ed25519HDKeyPair owner) async {
-  final programId = Ed25519HDPublicKey.fromBase58(_programId);
+  final programId = Ed25519HDPublicKey.fromBase58(SolanaConfig.programId);
   final rnd = Random.secure();
   final vaultId = List<int>.generate(16, (_) => rnd.nextInt(256));
   final hash = List<int>.generate(32, (_) => rnd.nextInt(256));

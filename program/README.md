@@ -45,6 +45,7 @@
 |:---|:---|
 | `programs/vault_registry/src/lib.rs` | Код программы |
 | `tests/vault_registry.ts` | TS-тесты на mocha |
+| `idl/vault_registry.json` | IDL задеплоенной версии; Program ID сверяется тестом в `app/` |
 | `Anchor.toml` | Версии Anchor/Solana, program ID, кластер |
 | `migrations/deploy.ts` | Скрипт деплоя |
 
@@ -65,6 +66,20 @@ anchor deploy --provider.cluster devnet
 
 `--validator legacy` нужен, пока surfpool не поддерживает SBPF v3 —
 см. [ADR 0004](../docs/adr/0004-toolchain-versions.md).
+
+### Devnet
+
+Программа задеплоена: `Y8ik6bx8kAoeMr3Ugu7SmhKtvChTkBTd1hZLdWggHNg`,
+upgrade authority — `FZ3GPBucdPk3J135uzNgSKwGKMoA3voqypEz3vKXgZcz`.
+IDL выложен в цепочку при деплое. После изменения контракта:
+
+```bash
+anchor build
+anchor deploy --provider.cluster devnet --provider.wallet ~/.config/solana/id.json
+cp target/idl/vault_registry.json idl/
+```
+
+Кошелёк передаём явно: глобальный конфиг `solana` CLI может указывать на чужой ключ.
 
 ---
 
