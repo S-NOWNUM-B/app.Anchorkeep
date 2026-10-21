@@ -38,7 +38,7 @@ jobs:
           workspaces: program
       - name: Установить Solana CLI
         run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          sh -c "$(curl -sSfL "https://release.anza.xyz/v${SOLANA_VERSION}/install")"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
       # avm собирается из исходников ~2 минуты, поэтому кэшируем его и
       # установленный Anchor; ключ включает версию.
@@ -55,10 +55,10 @@ jobs:
         if: steps.avm-cache.outputs.cache-hit != 'true'
         run: |
           cargo install --git https://github.com/solana-foundation/anchor avm --force
-          avm install ${ANCHOR_VERSION}
+          avm install "${ANCHOR_VERSION}"
       - name: Выбрать версию Anchor
         run: |
-          avm use ${ANCHOR_VERSION}
+          avm use "${ANCHOR_VERSION}"
           echo "$HOME/.avm/bin" >> "$GITHUB_PATH"
           anchor --version
       # Одноразовый ключ только для localnet-тестов
