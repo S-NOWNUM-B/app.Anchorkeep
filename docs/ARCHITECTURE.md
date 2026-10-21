@@ -82,14 +82,14 @@ JSON-конверт, бинарные поля в base64:
 |---|---|
 | owner | Pubkey |
 | vault_id | [u8; 16] |
-| version | u64 |
+| version | u64 — `revision` заверенного файла (см. ADR 0006) |
 | hash | [u8; 32] — SHA-256 байт всего `.akv`-файла |
 | updated_at | i64 — `Clock::get()?.unix_timestamp` |
 | bump | u8 |
 
 **Инструкции:**
-- `initialize_vault(vault_id, hash)` — создаёт PDA, `version = 1`. Signer = owner, payer = owner.
-- `commit_version(new_hash, expected_version)` — `require!(signer == owner)`, `require!(record.version == expected_version)` (защита от гонок), затем `version += 1`, обновить `hash` и `updated_at`.
+- `initialize_vault(vault_id, hash, version)` — создаёт PDA, `version` = `revision` файла. Signer = owner, payer = owner.
+- `commit_version(new_hash, new_version)` — `require!(signer == owner)`, `require!(new_version > record.version)` (версия только растёт: защита от гонок и от заверения старого файла), затем `version = new_version`, обновить `hash` и `updated_at`.
 
 **Ошибки:** `Unauthorized`, `VersionMismatch`.
 
@@ -105,7 +105,7 @@ JSON-конверт, бинарные поля в base64:
 ```
 файл бэкапа → sha256(bytes) → fetch PDA(owner, vaultId)
   hash == onchain.hash                → ✅ Verified (последняя версия)
-  revision < onchain.version          → ⚠️ Outdated (старый бэкап)
+  revision < onchain.version          → ⚠️ Outdated (старый бэкап; version = revision заверенного файла)
   иначе                               → ❌ Unknown (не заверен / изменён)
   PDA нет / нет сети                  → ℹ️ Not anchored / Offline
 ```
