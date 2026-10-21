@@ -22,7 +22,8 @@ permissions:
 
 jobs:
   # Менялась ли область в этом PR. На merge-коммите PR HEAD^1 — актуальный
-  # base, поэтому дифф HEAD^1..HEAD ровно изменения PR.
+  # base, поэтому дифф HEAD^1..HEAD ровно изменения PR. --no-renames: при
+  # переносе файла из области учитываем и старый путь, иначе проверки пропустятся.
   changes:
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -41,7 +42,7 @@ jobs:
         run: |
           if [ "$EVENT" != "pull_request" ]; then
             echo "app=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only HEAD^1 HEAD | grep -qE '^(app/|\.github/workflows/ci-app\.yml$)'; then
+          elif git diff --name-only --no-renames HEAD^1 HEAD | grep -qE '^(app/|\.github/workflows/ci-app\.yml$)'; then
             echo "app=true" >> "$GITHUB_OUTPUT"
           else
             echo "app=false" >> "$GITHUB_OUTPUT"
