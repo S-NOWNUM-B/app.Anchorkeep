@@ -73,5 +73,3 @@ Windows-сборка — только на Windows с Visual Studio (Desktop dev
 - Импорты только `package:anchorkeep/...`, `print` запрещён линтером.
 - Ключи, пароли и расшифрованные данные не попадают в логи и на диск.
 - Тесты обязательны для `core/crypto`, `core/vault`, `core/solana`.
-
-Полный список — в [CLAUDE.md](../CLAUDE.md) и [CONTRIBUTING.md](../CONTRIBUTING.md).

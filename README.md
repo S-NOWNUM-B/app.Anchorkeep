@@ -12,7 +12,6 @@
 ![Flutter 3.47.7](https://img.shields.io/badge/Flutter-3.47.7-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Anchor 1.2.1](https://img.shields.io/badge/Anchor-1.2.1-000000?style=for-the-badge&logo=rust&logoColor=white)
 ![Solana 4.1.2](https://img.shields.io/badge/Solana-4.1.2_devnet-9945FF?style=for-the-badge&logo=solana&logoColor=white)
-![License GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-A42E2B?style=for-the-badge&logo=gnu&logoColor=white)
 
 </div>
 
@@ -21,29 +20,73 @@
 ## Содержание
 
 - [О проекте](#о-проекте)
+- [Архитектура](#архитектура)
 - [Возможности](#возможности)
 - [Как работает проверка бэкапа](#как-работает-проверка-бэкапа)
-- [Структура репозитория](#структура-репозитория)
 - [Быстрый старт](#быстрый-старт)
-- [Команда](#команда)
-- [Документация](#документация)
-- [Лицензия](#лицензия)
+- [Команды](#команды)
 
 ---
 
 ## О проекте
+
+### Проблема
 
 Облачные менеджеры паролей требуют доверять чужому серверу. У локальных другая
 проблема: бэкап можно подменить или откатить на старую версию, и пользователь
 этого не заметит. AES-GCM защищает от порчи данных, но не от отката к старому
 валидному файлу.
 
-Anchorkeep хранит сейф локально, без регистрации и сервера. При каждом бэкапе
+### Решение
+
+**Anchorkeep** хранит сейф локально, без регистрации и сервера. При каждом бэкапе
 SHA-256 зашифрованного файла и номер версии записываются в Solana Devnet. При
 восстановлении приложение сверяет файл с on-chain записью. Секреты в блокчейн
 не попадают.
 
+### Аудитория
+
+- Технически грамотные пользователи, которые не хотят хранить пароли в облаке
+- Те, кто переносит данные между телефоном и ПК через файл
+
 Платформы MVP: **Android 8+ (API 26)** и **Windows 10+**.
+
+---
+
+## Архитектура
+
+```mermaid
+flowchart LR
+    User["Пользователь"]
+
+    subgraph App["Flutter-приложение"]
+        UI["Экраны<br/>(Riverpod, go_router)"]
+        Vault["core/vault<br/>(формат .akv)"]
+        Crypto["core/crypto<br/>(Argon2id, AES-256-GCM)"]
+        SolanaClient["core/solana<br/>(RPC, PDA)"]
+    end
+
+    subgraph Storage["Локальные файлы"]
+        VaultFile[("vault.akv")]
+        Backup[("backup.akbackup")]
+    end
+
+    subgraph Chain["Solana Devnet"]
+        Program["vault_registry<br/>(Anchor)"]
+        Record[("VaultRecord PDA<br/>(версия, SHA-256)")]
+    end
+
+    User --> UI
+    UI --> Vault
+    Vault --> Crypto
+    Vault --> VaultFile
+    Vault --> Backup
+    UI --> SolanaClient
+    SolanaClient --> Program
+    Program --> Record
+```
+
+Подробное описание криптосхемы, формата файла и программы — в `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -85,68 +128,75 @@ SHA-256 зашифрованного файла и номер версии за�
 
 ---
 
-## Структура репозитория
+## Быстрый старт
+
+### Требования
 
 <div align="center">
 
-| **Папка** | **Что внутри** |
-|:---|:---|
-| [`app/`](app) | Flutter-приложение: Riverpod, go_router, Material 3 |
-| [`program/`](program) | Anchor workspace, программа `vault_registry` |
-| [`docs/`](docs) | PRD, архитектура, бэклог, ADR, брендинг |
-| [`.github/`](.github) | CI, шаблоны PR и issue |
+| Компонент | Версия |
+| :-------: | :----: |
+| Flutter | 3.47 stable |
+| Rust | 1.89 |
+| Solana CLI | 4.1.2 |
+| Anchor (через `avm`) | 1.2.1 |
+| Node.js + yarn | 24 + 1.22 |
 
 </div>
 
----
+Сборка программы — на macOS, Linux или WSL. Windows-сборка приложения — только на Windows.
 
-## Быстрый старт
-
-Нужны Flutter 3.47 stable, Rust 1.89, Solana CLI 4.1.2, Anchor 1.2.1 через `avm`,
-Node 24 и yarn. Версии зафиксированы в [ADR 0004](docs/adr/0004-toolchain-versions.md).
+### Клонирование репозитория
 
 ```bash
+git clone https://github.com/S-NOWNUM-B/app.Anchorkeep.git
+
+cd app.Anchorkeep
+```
+
+### Запуск приложения
+
+```bash
+# Установка зависимостей и запуск на Windows
 cd app && flutter pub get && flutter run -d windows
 ```
 
+### Сборка и тесты программы
+
 ```bash
+# Установка зависимостей, сборка и тесты на локальном валидаторе
 cd program && yarn install && anchor build && anchor test --validator legacy
 ```
 
-Подробнее — в [app/README.md](app/README.md) и [program/README.md](program/README.md).
-
 ---
 
-## Команда
+## Команды
 
-<div align="center">
+### Приложение (`app/`)
 
-| **Участник** | **Зона** |
-|:---|:---|
-| Aliar | Core — криптография, формат vault, безопасность |
-| Bekzat | UI — Flutter-экраны, дизайн, адаптивность |
-| Stas | Chain — Anchor-программа, Solana-адаптер, CI |
+```bash
+# Проверка форматирования
+dart format --set-exit-if-changed .
 
-</div>
+# Статический анализ
+flutter analyze --fatal-infos
 
-Задачи ведутся в Linear, проект «Anchorkeep MVP». Ветки, коммиты и PR описаны
-в [CONTRIBUTING.md](CONTRIBUTING.md).
+# Тесты
+flutter test
 
----
+# Отладочная сборка APK
+flutter build apk --debug
+```
 
-## Документация
+### Программа (`program/`)
 
-- [Описание продукта](docs/PRD.md) — проблема, scope MVP и метрики демо;
-- [Архитектура](docs/ARCHITECTURE.md) — криптосхема, формат файла, Solana-программа;
-- [Бэклог](docs/BACKLOG.md) — задачи по неделям и критический путь;
-- [Технические решения](docs/adr/README.md) — обоснование принятых решений;
-- [Разработка](CONTRIBUTING.md) — ветки, коммиты, PR и Definition of Done;
-- [Безопасность](SECURITY.md) — как сообщить об уязвимости.
+```bash
+# Сборка программы
+anchor build
 
----
+# Тесты на solana-test-validator
+anchor test --validator legacy
 
-## Лицензия
-
-[GPL-3.0-or-later](LICENSE). Код можно использовать, изменять и распространять,
-а производные работы тоже должны оставаться открытыми под GPL. Почему выбрана
-эта лицензия — в [ADR 0001](docs/adr/0001-license-gpl-3.md).
+# Деплой в devnet
+anchor deploy --provider.cluster devnet
+```
