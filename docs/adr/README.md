@@ -19,3 +19,4 @@ ADR — короткий документ об одном архитектурн
 | 0002 | Параметры Argon2id (memory / iterations / isolate) | AK-03 | будет |
 | 0003 | Dart-клиент Solana: `solana` vs `coral_xyz` | AK-04 | будет |
 | [0004](0004-toolchain-versions.md) | Версии Flutter / Anchor / Solana CLI | AK-05 | Accepted |
+| [0005](0005-vault-aad.md) | AAD и целостность файла `.akv` | AK-10, AK-11 | Proposed |
