@@ -1,0 +1,48 @@
+name: ci-program
+
+on:
+  pull_request:
+    paths: ["program/**", ".github/workflows/ci-program.yml"]
+  push:
+    branches: [main]
+    paths: ["program/**", ".github/workflows/ci-program.yml"]
+
+concurrency:
+  group: ci-program-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOLANA_VERSION: 4.1.2
+  ANCHOR_VERSION: 1.2.1
+
+defaults:
+  run:
+    working-directory: program
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: program/yarn.lock
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: program
+      - name: Установить Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: Установить Anchor через avm
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --force
+          avm install ${ANCHOR_VERSION}
+          avm use ${ANCHOR_VERSION}
+      # Одноразовый ключ только для localnet-тестов
+      - run: solana-keygen new --no-bip39-passphrase --silent -o ~/.config/solana/id.json
+      - run: yarn install --frozen-lockfile
+      - run: anchor build
+      - run: anchor test --validator legacy

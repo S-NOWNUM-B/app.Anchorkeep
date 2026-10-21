@@ -1,0 +1,60 @@
+name: Баг
+description: Сообщить об ошибке в приложении или программе vault_registry
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Уязвимости не публикуй здесь — см. SECURITY.md.
+        Не вставляй мастер-пароль, ключи, содержимое сейфа и keypair-файлы.
+  - type: textarea
+    id: description
+    attributes:
+      label: Что случилось
+      description: Кратко опиши проблему.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Открыть ...
+        2. Нажать ...
+        3. Увидеть ошибку
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Платформа
+      multiple: true
+      options:
+        - Android
+        - Windows
+        - Другое
+    validations:
+      required: true
+  - type: input
+    id: platform_details
+    attributes:
+      label: Версия ОС / устройство
+      placeholder: "Android 14, Pixel 7 / Windows 11 23H2"
+  - type: input
+    id: version
+    attributes:
+      label: Версия приложения или коммит
+      placeholder: "v0.1.0 / a1b2c3d"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи и скриншоты
+      description: Убедись, что в логах нет секретов.
+      render: shell

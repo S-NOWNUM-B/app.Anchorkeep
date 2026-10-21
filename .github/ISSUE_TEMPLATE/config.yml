@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Уязвимость безопасности
+    url: https://github.com/S-NOWNUM-B/app.Anchorkeep/security/policy
+    about: Не создавай публичный issue — следуй SECURITY.md (GitHub Security Advisory или email).
+  - name: Рабочие задачи — в Linear
+    url: https://linear.app/grim-stack/project/anchorkeep-mvp-1ff5bcb7ff13
+    about: Основной трекер задач команды — Linear (team MAIN). GitHub Issues — только для внешних багов и предложений.

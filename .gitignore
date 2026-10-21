@@ -1,0 +1,19 @@
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+
+# Секреты: ключи, кошельки, env — никогда не коммитим
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*-keypair.json
+id.json
+*.akv
+*.akbackup
+vault.tmp

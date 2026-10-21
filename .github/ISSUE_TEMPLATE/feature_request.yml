@@ -1,0 +1,50 @@
+name: Предложение
+description: Предложить новую функцию или улучшение
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Сверься со scope MVP и разделом «Out of scope» в docs/PRD.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Проблема
+      description: Какую задачу пользователя это решает?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Рассмотренные альтернативы
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Платформа
+      multiple: true
+      options:
+        - Android
+        - Windows
+        - Другое
+        - Не зависит от платформы
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Область
+      multiple: true
+      options:
+        - app / UI
+        - crypto
+        - vault
+        - solana / program
+        - docs
+        - ci
