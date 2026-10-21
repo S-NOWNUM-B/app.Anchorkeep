@@ -15,6 +15,15 @@ class VaultSession {
   VaultHeader header;
   final SecretKey vaultKey;
   final Map<String, Object?> payload;
+
+  /// Блокировка: стираем payload и уничтожаем ключ сейфа. После этого
+  /// сессия непригодна — для работы нужен новый `unlockVault`. Повторный
+  /// вызов безопасен. Dart не гарантирует обнуление всей памяти, но
+  /// минимизируем время жизни секретов.
+  void close() {
+    payload.clear();
+    vaultKey.destroy();
+  }
 }
 
 /// Новый сейф: случайные vaultId, VK и соль. revision = 0 до первого save.
