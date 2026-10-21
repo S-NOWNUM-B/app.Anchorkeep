@@ -21,3 +21,4 @@ ADR — короткий документ об одном архитектурн
 | [0004](0004-toolchain-versions.md) | Версии Flutter / Anchor / Solana CLI | AK-05 | Accepted |
 | [0005](0005-vault-aad.md) | AAD и целостность файла `.akv` | AK-10, AK-11 | Proposed |
 | [0006](0006-onchain-version-is-revision.md) | On-chain `version` = `revision` файла | AK-14, AK-43 | Proposed |
+| [0007](0007-change-password-rotates-vault-key.md) | Смена пароля заменяет ключ сейфа | AK-53 | Accepted |
