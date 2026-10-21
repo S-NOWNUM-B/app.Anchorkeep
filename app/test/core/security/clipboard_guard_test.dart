@@ -1,7 +1,7 @@
-import 'dart:async';
-
 import 'package:anchorkeep/core/security/clipboard_guard.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/fake_timer.dart';
 
 /// Буфер обмена в памяти. [readable] = false имитирует запрет чтения
 /// (Android 10+ в фоне).
@@ -14,30 +14,6 @@ class FakeClipboard implements ClipboardPort {
 
   @override
   Future<String?> read() async => readable ? text : null;
-}
-
-/// Таймер, который срабатывает вручную через [fire].
-class FakeTimer implements Timer {
-  FakeTimer(this.duration, this._callback);
-
-  final Duration duration;
-  final void Function() _callback;
-  bool cancelled = false;
-  bool fired = false;
-
-  void fire() {
-    fired = true;
-    _callback();
-  }
-
-  @override
-  void cancel() => cancelled = true;
-
-  @override
-  bool get isActive => !cancelled && !fired;
-
-  @override
-  int get tick => fired ? 1 : 0;
 }
 
 void main() {

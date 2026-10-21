@@ -81,4 +81,15 @@ void main() {
     ];
     expect(utf8.decode(await saveVault(s)), isNot(contains('hunter2')));
   });
+
+  test('close стирает payload и уничтожает ключ сейфа', () async {
+    final s = await createVault(pw, kdf: fast());
+    s.payload['entries'] = [
+      {'title': 'почта'},
+    ];
+    s.close();
+    expect(s.payload, isEmpty);
+    expect(() => s.vaultKey.extractBytes(), throwsStateError);
+    s.close(); // повторный вызов безопасен
+  });
 }
