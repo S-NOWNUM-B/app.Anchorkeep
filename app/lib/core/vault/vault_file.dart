@@ -10,9 +10,15 @@ const _formatVersion = 1;
 
 /// Верхние границы KDF: чужой файл не должен заставить приложение
 /// выделить гигабайты памяти при разблокировке.
-const _maxMemoryKiB = 1024 * 1024;
+const _maxMemoryKiB = 256 * 1024;
 const _maxIterations = 10;
+
+/// Бюджет работы memoryKiB × iterations (1 GiB·проход): дефолт 64 MiB × 3
+/// укладывается с запасом, а 256 MiB × 10 — нет.
+const _maxWorkKiB = 1024 * 1024;
 const _maxParallelism = 8;
+
+// Argon2 требует минимум 8 KiB памяти на поток (см. проверку ниже).
 
 /// Открытая часть файла. Целиком входит в AAD payload (ADR 0005).
 class VaultHeader {
@@ -98,13 +104,17 @@ class VaultFile {
       throw const FormatException('vault: неизвестный KDF');
     }
     final parallelism = _int(kdf['parallelism'], 1, _maxParallelism);
+    final memoryKiB = _int(kdf['memoryKiB'], 8 * parallelism, _maxMemoryKiB);
+    final iterations = _int(kdf['iterations'], 1, _maxIterations);
+    if (memoryKiB * iterations > _maxWorkKiB) {
+      throw const FormatException('vault: слишком тяжёлый KDF');
+    }
     final header = VaultHeader(
       vaultId: _bytes(j['vaultId'], 16),
       revision: _int(j['revision'], 0, 1 << 53),
       kdf: KdfParams(
-        // Argon2 требует минимум 8 KiB на поток.
-        memoryKiB: _int(kdf['memoryKiB'], 8 * parallelism, _maxMemoryKiB),
-        iterations: _int(kdf['iterations'], 1, _maxIterations),
+        memoryKiB: memoryKiB,
+        iterations: iterations,
         parallelism: parallelism,
         salt: _bytes(kdf['salt'], 16),
       ),

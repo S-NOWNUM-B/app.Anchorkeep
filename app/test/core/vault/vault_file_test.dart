@@ -84,6 +84,11 @@ void main() {
     'memoryKiB 4 GiB (DoS)',
     (j) => sub(j, 'kdf')['memoryKiB'] = 4 * 1024 * 1024,
   );
+  rejects('memoryKiB 512 MiB', (j) => sub(j, 'kdf')['memoryKiB'] = 512 * 1024);
+  rejects('256 MiB × 10 итераций (бюджет работы)', (j) {
+    sub(j, 'kdf')['memoryKiB'] = 256 * 1024;
+    sub(j, 'kdf')['iterations'] = 10;
+  });
   rejects('неизвестный alg', (j) => sub(j, 'kdf')['alg'] = 'scrypt');
   rejects('битый base64', (j) => j['vaultId'] = '!!!');
 }

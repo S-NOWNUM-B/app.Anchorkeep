@@ -41,9 +41,19 @@ Future<VaultSession> unlockVault(List<int> bytes, String password) async {
   final file = VaultFile.decode(bytes);
   final h = file.header;
   final kek = await deriveKek(password, h.kdf);
-  final vaultKey = await unwrapVaultKey(kek, h.wrappedKey, h.vaultId);
+  final SecretKey vaultKey;
+  try {
+    vaultKey = await unwrapVaultKey(kek, h.wrappedKey, h.vaultId);
+  } finally {
+    kek.destroy(); // KEK больше не нужен — минимизируем время жизни
+  }
   final plain = await unseal(vaultKey, file.payload, h.aadBytes());
-  final payload = jsonDecode(utf8.decode(plain));
+  final Object? payload;
+  try {
+    payload = jsonDecode(utf8.decode(plain));
+  } finally {
+    plain.fillRange(0, plain.length, 0);
+  }
   if (payload is! Map<String, Object?>) {
     throw const FormatException('vault: payload не объект');
   }
@@ -53,10 +63,12 @@ Future<VaultSession> unlockVault(List<int> bytes, String password) async {
 /// revision + 1 и полное перешифрование payload с новым nonce.
 Future<Uint8List> saveVault(VaultSession session) async {
   session.header = session.header.withRevision(session.header.revision + 1);
-  final payload = await seal(
-    session.vaultKey,
-    utf8.encode(jsonEncode(session.payload)),
-    session.header.aadBytes(),
-  );
+  final plain = utf8.encode(jsonEncode(session.payload));
+  final Sealed payload;
+  try {
+    payload = await seal(session.vaultKey, plain, session.header.aadBytes());
+  } finally {
+    plain.fillRange(0, plain.length, 0);
+  }
   return VaultFile(session.header, payload).encode();
 }
