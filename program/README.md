@@ -31,7 +31,9 @@
 `["vault", owner, vault_id]`: владельца, номер версии, SHA-256 файла бэкапа и
 время обновления. Инструкции `initialize_vault` и `commit_version` описаны в
 [ARCHITECTURE.md](../docs/ARCHITECTURE.md#solana-программа-vault_registry).
-Сейчас в `lib.rs` шаблон Anchor; реальные инструкции появятся в AK-14.
+Версия `version` хранит `revision` заверенного файла и только растёт
+(см. [ADR 0006](../docs/adr/0006-onchain-version-is-revision.md)).
+Ошибки: `Unauthorized` (signer не владелец), `VersionMismatch` (версия не больше текущей).
 
 ---
 

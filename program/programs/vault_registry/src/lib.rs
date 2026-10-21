@@ -6,71 +6,83 @@ declare_id!("Y8ik6bx8kAoeMr3Ugu7SmhKtvChTkBTd1hZLdWggHNg");
 pub mod vault_registry {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        ctx.accounts.counter.count = 0;
-        ctx.accounts.counter.authority = ctx.accounts.payer.key();
-
-        let cpi_accounts = anchor_lang::system_program::Transfer {
-            from: ctx.accounts.payer.to_account_info(),
-            to: ctx.accounts.counter.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new(anchor_lang::system_program::ID, cpi_accounts);
-        anchor_lang::system_program::transfer(cpi_ctx, HELLO_WORLD_LAMPORTS)?;
-
-        msg!("Hello, world! Counter initialized");
+    /// Создаёт запись сейфа. `version` — `revision` заверяемого файла (ADR 0006).
+    pub fn initialize_vault(
+        ctx: Context<InitializeVault>,
+        vault_id: [u8; VAULT_ID_LEN],
+        hash: [u8; HASH_LEN],
+        version: u64,
+    ) -> Result<()> {
+        let record = &mut ctx.accounts.record;
+        record.owner = ctx.accounts.owner.key();
+        record.vault_id = vault_id;
+        record.version = version;
+        record.hash = hash;
+        record.updated_at = Clock::get()?.unix_timestamp;
+        record.bump = ctx.bumps.record;
         Ok(())
     }
 
-    pub fn increment(ctx: Context<Increment>) -> Result<()> {
-        require_keys_eq!(
-            ctx.accounts.counter.authority,
-            ctx.accounts.authority.key(),
-            ErrorCode::Unauthorized,
-        );
-        require!(
-            ctx.accounts.counter.count < MAX_COUNT,
-            ErrorCode::CounterOverflow,
-        );
+    /// Заверяет новую версию файла. Версия только растёт: защита от гонок
+    /// двух устройств и от заверения старого файла поверх нового.
+    pub fn commit_version(
+        ctx: Context<CommitVersion>,
+        new_hash: [u8; HASH_LEN],
+        new_version: u64,
+    ) -> Result<()> {
+        let record = &mut ctx.accounts.record;
+        require!(new_version > record.version, ErrorCode::VersionMismatch);
 
-        ctx.accounts.counter.count += 1;
-        msg!("Hello, world! Counter is now {}", ctx.accounts.counter.count);
+        record.version = new_version;
+        record.hash = new_hash;
+        record.updated_at = Clock::get()?.unix_timestamp;
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct Initialize<'info> {
+#[instruction(vault_id: [u8; VAULT_ID_LEN])]
+pub struct InitializeVault<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub owner: Signer<'info>,
     #[account(
         init,
-        payer = payer,
-        space = 8 + Counter::INIT_SPACE,
-        seeds = [COUNTER_SEED],
+        payer = owner,
+        space = 8 + VaultRecord::INIT_SPACE,
+        seeds = [VAULT_SEED, owner.key().as_ref(), vault_id.as_ref()],
         bump
     )]
-    pub counter: Account<'info, Counter>,
+    pub record: Account<'info, VaultRecord>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct Increment<'info> {
-    #[account(mut, seeds = [COUNTER_SEED], bump)]
-    pub counter: Account<'info, Counter>,
-    pub authority: Signer<'info>,
+pub struct CommitVersion<'info> {
+    // Seeds берём из самой записи: чужой signer пройдёт проверку PDA,
+    // но упадёт на has_one с понятной ошибкой Unauthorized
+    #[account(
+        mut,
+        seeds = [VAULT_SEED, record.owner.as_ref(), record.vault_id.as_ref()],
+        bump = record.bump,
+        has_one = owner @ ErrorCode::Unauthorized
+    )]
+    pub record: Account<'info, VaultRecord>,
+    pub owner: Signer<'info>,
 }
 
 pub mod constants {
     use super::*;
 
     #[constant]
-    pub const COUNTER_SEED: &[u8] = b"counter";
+    pub const VAULT_SEED: &[u8] = b"vault";
 
-    #[constant]
-    pub const HELLO_WORLD_LAMPORTS: u64 = 1;
+    // usize не экспортируется в IDL через #[constant], поэтому без атрибута
 
-    #[constant]
-    pub const MAX_COUNT: u64 = 10;
+    /// Длина `vaultId` из заголовка `.akv`
+    pub const VAULT_ID_LEN: usize = 16;
+
+    /// SHA-256 всего `.akv`-файла
+    pub const HASH_LEN: usize = 32;
 }
 
 pub mod error {
@@ -78,10 +90,10 @@ pub mod error {
 
     #[error_code]
     pub enum ErrorCode {
-        #[msg("Only the counter authority can update this counter")]
+        #[msg("Only the vault owner can commit a new version")]
         Unauthorized,
-        #[msg("Counter has reached the maximum value")]
-        CounterOverflow,
+        #[msg("New version must be greater than the anchored one")]
+        VersionMismatch,
     }
 }
 
@@ -90,12 +102,17 @@ pub mod state {
 
     #[account]
     #[derive(InitSpace)]
-    pub struct Counter {
-        pub count: u64,
-        pub authority: Pubkey,
+    pub struct VaultRecord {
+        pub owner: Pubkey,
+        pub vault_id: [u8; VAULT_ID_LEN],
+        /// `revision` заверенного файла (ADR 0006)
+        pub version: u64,
+        pub hash: [u8; HASH_LEN],
+        pub updated_at: i64,
+        pub bump: u8,
     }
 }
 
 use constants::*;
 use error::ErrorCode;
-use state::Counter;
+use state::VaultRecord;
