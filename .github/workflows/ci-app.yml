@@ -1,8 +1,9 @@
 name: ci-app
 
 on:
+  # На каждом PR: сводная проверка обязательна для мержа в main (MAIN-23),
+  # тяжёлые job сами пропускаются, если область не менялась.
   pull_request:
-    paths: ["app/**", ".github/workflows/ci-app.yml"]
   push:
     branches: [main]
     paths: ["app/**", ".github/workflows/ci-app.yml"]
@@ -20,7 +21,36 @@ permissions:
   contents: read
 
 jobs:
+  # Менялась ли область в этом PR. На merge-коммите PR HEAD^1 — актуальный
+  # base, поэтому дифф HEAD^1..HEAD ровно изменения PR. --no-renames: при
+  # переносе файла из области учитываем и старый путь, иначе проверки пропустятся.
+  changes:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only --no-renames HEAD^1 HEAD | grep -qE '^(app/|\.github/workflows/ci-app\.yml$)'; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
   analyze-test:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
@@ -36,6 +66,8 @@ jobs:
       - run: flutter test
 
   build-android:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +93,8 @@ jobs:
           if-no-files-found: error
 
   build-windows:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     timeout-minutes: 20
     runs-on: windows-latest
     steps:
@@ -71,3 +105,22 @@ jobs:
           channel: stable
           cache: true
       - run: flutter build windows --debug
+
+  # Обязательная проверка для main: зелёная, если все нужные job прошли
+  # или пропущены, потому что область не менялась.
+  app-ok:
+    if: always()
+    needs: [changes, analyze-test, build-android, build-windows]
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          done
