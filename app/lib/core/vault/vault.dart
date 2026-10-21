@@ -13,7 +13,7 @@ class VaultSession {
   VaultSession(this.header, this.vaultKey, this.payload);
 
   VaultHeader header;
-  final SecretKey vaultKey;
+  SecretKey vaultKey;
   final Map<String, Object?> payload;
 
   /// Блокировка: стираем payload и уничтожаем ключ сейфа. После этого
@@ -69,15 +69,28 @@ Future<VaultSession> unlockVault(List<int> bytes, String password) async {
   return VaultSession(h, vaultKey, payload);
 }
 
+/// Куда отдать готовые байты сейфа (в приложении — writeFileAtomic).
+typedef WriteVault = Future<void> Function(Uint8List bytes);
+
 /// revision + 1 и полное перешифрование payload с новым nonce.
 Future<Uint8List> saveVault(VaultSession session) async {
   session.header = session.header.withRevision(session.header.revision + 1);
-  final plain = utf8.encode(jsonEncode(session.payload));
-  final Sealed payload;
+  return sealVaultFile(session.header, session.vaultKey, session.payload);
+}
+
+/// Низкоуровневая сборка файла: шифрует [payload] ключом [vaultKey] с AAD =
+/// заголовок. Общая часть `saveVault` и смены пароля.
+Future<Uint8List> sealVaultFile(
+  VaultHeader header,
+  SecretKey vaultKey,
+  Map<String, Object?> payload,
+) async {
+  final plain = utf8.encode(jsonEncode(payload));
+  final Sealed sealed;
   try {
-    payload = await seal(session.vaultKey, plain, session.header.aadBytes());
+    sealed = await seal(vaultKey, plain, header.aadBytes());
   } finally {
     plain.fillRange(0, plain.length, 0);
   }
-  return VaultFile(session.header, payload).encode();
+  return VaultFile(header, sealed).encode();
 }

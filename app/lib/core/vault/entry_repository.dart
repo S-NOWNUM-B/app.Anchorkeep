@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import 'dart:typed_data';
-
 import 'package:anchorkeep/core/vault/entry.dart';
 import 'package:anchorkeep/core/vault/vault.dart';
 import 'package:uuid/uuid.dart';
-
-/// Куда отдать готовые байты сейфа (в приложении — writeFileAtomic).
-typedef WriteVault = Future<void> Function(Uint8List bytes);
 
 /// CRUD записей поверх открытого сейфа. Каждая операция перешифровывает
 /// payload (revision + 1) и пишет файл; при сбое записи состояние
