@@ -32,5 +32,5 @@ String backupFileName(VaultHeader header, DateTime at) {
       .join();
   final date = '${at.year}${two(at.month)}${two(at.day)}';
   final time = '${two(at.hour)}${two(at.minute)}${two(at.second)}';
-  return 'anchorkeep-$id-r${header.revision}-$date-$time.akbackup';
+  return 'ciphervault-$id-r${header.revision}-$date-$time.akbackup';
 }
