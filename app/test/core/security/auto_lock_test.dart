@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:anchorkeep/core/security/auto_lock.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -100,6 +102,42 @@ void main() {
         );
       }
       expect(from('не словарь'), const Duration(minutes: 5));
+    });
+  });
+
+  group('AutoLockPause', () {
+    test(
+      'активна только пока выполняется job и возвращает его результат',
+      () async {
+        final c = Completer<int>();
+        expect(AutoLockPause.isActive, isFalse);
+        final f = AutoLockPause.during(() => c.future);
+        expect(AutoLockPause.isActive, isTrue);
+        c.complete(42);
+        expect(await f, 42);
+        expect(AutoLockPause.isActive, isFalse);
+      },
+    );
+
+    test('вложенные вызовы: активна, пока не завершится последний', () async {
+      final a = Completer<void>();
+      final b = Completer<void>();
+      final fa = AutoLockPause.during(() => a.future);
+      final fb = AutoLockPause.during(() => b.future);
+      a.complete();
+      await fa;
+      expect(AutoLockPause.isActive, isTrue);
+      b.complete();
+      await fb;
+      expect(AutoLockPause.isActive, isFalse);
+    });
+
+    test('снимается и при ошибке job', () async {
+      await expectLater(
+        AutoLockPause.during<void>(() async => throw StateError('диалог')),
+        throwsStateError,
+      );
+      expect(AutoLockPause.isActive, isFalse);
     });
   });
 }
