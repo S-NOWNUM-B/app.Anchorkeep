@@ -43,8 +43,8 @@ master password ──Argon2id(salt, params)──▶ KEK (32 B)
 random Vault Key (VK, 32 B) ──AES-256-GCM(VK, aad=header)──▶ payload
 ```
 
-- **Argon2id**: стартовые параметры `memory=64 MiB, iterations=3, parallelism=1`, хранятся в заголовке → можно менять без миграции. Подбираются бенчмарком в AK-03.
-  - ⚠️ В `cryptography_flutter` нативно ускорены AES-GCM/ChaCha20, а Argon2id идёт через чистый Dart → может быть медленно на Android. Если бенчмарк > 1.5 с — снизить memory до 32 MiB или вынести в isolate (`compute`), и записать решение в ADR.
+- **Argon2id**: стартовые параметры `memory=64 MiB, iterations=3, parallelism=1`, хранятся в заголовке → можно менять без миграции. Подбираются бенчмарком (ADR 0002).
+  - ⚠️ В `cryptography_flutter` нативно ускорены AES-GCM/ChaCha20, а Argon2id идёт через чистый Dart → может быть медленно на Android. Замер показал, что isolate не нужен (пакет отдаёт управление циклу событий); если на телефоне > 1.5 с — снизить memory до 32 MiB (ADR 0002).
 - **KEK** только разворачивает VK. Смена пароля = новый VK, новая соль, новый KEK и перешифровка payload (ADR 0007).
 - **Nonce**: 12 байт, новый на каждое шифрование.
 - **AAD** payload = канонический JSON заголовка (без поля `payload`) → подмена заголовка ломает расшифровку.
