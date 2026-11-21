@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:anchorkeep/core/crypto/aead.dart';
 import 'package:anchorkeep/core/crypto/kdf.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,5 +36,23 @@ void main() {
     final d = KdfParams.defaults();
     expect([d.memoryKiB, d.iterations, d.parallelism], [65536, 3, 1]);
     expect(d.salt.length, 16);
+  });
+
+  test('deriveKek не блокирует основной поток (UI не зависает)', () async {
+    final params = KdfParams(
+      memoryKiB: 32 * 1024,
+      iterations: 3,
+      parallelism: 1,
+      salt: randomBytes(16),
+    );
+    var ticks = 0;
+    final timer = Timer.periodic(
+      const Duration(milliseconds: 10),
+      (_) => ticks++,
+    );
+    await deriveKek('пароль', params);
+    timer.cancel();
+    // Если бы Argon2id считался в основном потоке, таймер не сработал бы ни разу.
+    expect(ticks, greaterThan(5));
   });
 }
