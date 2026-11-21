@@ -930,6 +930,8 @@ void main() {
               initialBytes: bytes!,
               onCancel: () {},
               fetchRecord: (_, _) async => null,
+              // На устройстве сейфа нет: экран сравнивает бэкап с диском (MAIN-69).
+              currentHeader: () async => null,
               unlockBackup: (_, password) async {
                 if (password != 'correct-password') {
                   throw StateError('bad password');
