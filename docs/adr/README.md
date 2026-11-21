@@ -16,7 +16,7 @@ ADR — короткий документ об одном архитектурн
 | № | Решение | Задача | Статус |
 |---|---|---|---|
 | [0001](0001-license-gpl-3.md) | Лицензия GPL-3.0-or-later | — | Accepted |
-| [0002](0002-argon2id-params.md) | Параметры Argon2id (memory / iterations / isolate) | AK-03 | Proposed |
+| [0002](0002-argon2id-params.md) | Параметры Argon2id (memory / iterations / isolate) | AK-03 | Accepted |
 | [0003](0003-dart-solana-client.md) | Dart-клиент Solana: `solana` с ручной Anchor-сериализацией | AK-04 | Accepted |
 | [0004](0004-toolchain-versions.md) | Версии Flutter / Anchor / Solana CLI | AK-05 | Accepted |
 | [0005](0005-vault-aad.md) | AAD и целостность файла `.akv` | AK-10, AK-11 | Proposed |
