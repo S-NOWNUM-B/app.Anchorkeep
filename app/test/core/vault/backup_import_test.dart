@@ -152,4 +152,46 @@ void main() {
       expect(classifyImport(h(other), h(a)), ImportKind.differentVault);
     });
   });
+
+  group('readCurrentVaultHeader', () {
+    test('читает версию и vaultId сейфа на диске без пароля', () async {
+      final (s, bytes) = await vaultWith('данные', 3);
+      await File(path).writeAsBytes(bytes);
+      final h = await readCurrentVaultHeader(path);
+      expect(h, isNotNull);
+      expect(h!.revision, 3);
+      expect(h.vaultId, s.header.vaultId);
+    });
+
+    test('файла нет → null', () async {
+      expect(await readCurrentVaultHeader(path), isNull);
+    });
+
+    test('файл повреждён → null', () async {
+      await File(path).writeAsBytes([1, 2, 3]);
+      expect(await readCurrentVaultHeader(path), isNull);
+    });
+
+    test(
+      'вместе с classifyImport видит, что бэкап старее сейфа на диске',
+      () async {
+        // Один сейф: версия 2 уходит в бэкап, на диске лежит версия 5.
+        final session = await createVault(pw, kdf: fast());
+        await saveVault(session);
+        final older = await saveVault(session);
+        for (var i = 0; i < 2; i++) {
+          await saveVault(session);
+        }
+        final newer = await saveVault(session);
+        await File(path).writeAsBytes(newer);
+
+        final onDisk = await readCurrentVaultHeader(path);
+        expect(onDisk!.revision, 5);
+        expect(
+          classifyImport(previewBackup(older), onDisk),
+          ImportKind.sameVaultOlder,
+        );
+      },
+    );
+  });
 }
