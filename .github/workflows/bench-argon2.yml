@@ -1,0 +1,56 @@
+name: bench-argon2
+
+# Замер Argon2id на реальных раннерах (MAIN-19, ADR 0002). Запускается вручную
+# или при изменении утилиты; результат лежит в сводке запуска (Summary).
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths: [".github/workflows/bench-argon2.yml", "app/tool/argon2_bench*.dart"]
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows x64 — целевая платформа; ARM64 Linux — ближайший к телефону
+        # процессор среди доступных раннеров; ubuntu x64 — для сравнения.
+        os: [windows-latest, ubuntu-24.04-arm, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      # Flutter не нужен: копируем только чистый Dart (core/crypto и утилиту)
+      # в отдельный пакет.
+      - name: Собрать пакет для замера
+        run: |
+          B="$RUNNER_TEMP/bench"
+          mkdir -p "$B/lib/core" "$B/tool"
+          cp -r app/lib/core/crypto "$B/lib/core/"
+          cp app/tool/argon2_bench.dart app/tool/argon2_bench_lib.dart "$B/tool/"
+          printf 'name: anchorkeep\nenvironment:\n  sdk: ^3.5.0\ndependencies:\n  cryptography: ^2.9.0\n' > "$B/pubspec.yaml"
+      - name: Скомпилировать
+        working-directory: ${{ runner.temp }}/bench
+        run: |
+          dart pub get
+          dart compile exe tool/argon2_bench.dart -o bench.exe
+      - name: Замер (два прогона)
+        working-directory: ${{ runner.temp }}/bench
+        run: |
+          {
+            echo "### ${{ matrix.os }}"
+            echo '```'
+            case "$RUNNER_OS" in
+              Windows) powershell -NoProfile -Command "(Get-CimInstance Win32_Processor).Name" ;;
+              Linux) lscpu | grep -E 'Architecture|Model name|^CPU\(s\)' ;;
+            esac
+            for i in 1 2; do echo "--- прогон $i"; ./bench.exe; done
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
