@@ -38,8 +38,8 @@ class _AutoLockScopeState extends State<AutoLockScope> {
     _lock = AutoLock(timeout: widget.timeout, onLock: () => widget.onLock())
       ..start();
     _lifecycle = AppLifecycleListener(
-      onHide: _lock.lockNow,
-      onPause: _lock.lockNow,
+      onHide: _onBackground,
+      onPause: _onBackground,
     );
     HardwareKeyboard.instance.addHandler(_onKey);
   }
@@ -56,6 +56,10 @@ class _AutoLockScopeState extends State<AutoLockScope> {
     _lifecycle.dispose();
     _lock.stop();
     super.dispose();
+  }
+
+  void _onBackground() {
+    if (!AutoLockPause.isActive) _lock.lockNow();
   }
 
   bool _onKey(KeyEvent _) {

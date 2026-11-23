@@ -16,9 +16,10 @@ ADR — короткий документ об одном архитектурн
 | № | Решение | Задача | Статус |
 |---|---|---|---|
 | [0001](0001-license-gpl-3.md) | Лицензия GPL-3.0-or-later | — | Accepted |
-| 0002 | Параметры Argon2id (memory / iterations / isolate) | AK-03 | будет |
+| [0002](0002-argon2id-params.md) | Параметры Argon2id (memory / iterations / isolate) | AK-03 | Accepted |
 | [0003](0003-dart-solana-client.md) | Dart-клиент Solana: `solana` с ручной Anchor-сериализацией | AK-04 | Accepted |
 | [0004](0004-toolchain-versions.md) | Версии Flutter / Anchor / Solana CLI | AK-05 | Accepted |
 | [0005](0005-vault-aad.md) | AAD и целостность файла `.akv` | AK-10, AK-11 | Proposed |
 | [0006](0006-onchain-version-is-revision.md) | On-chain `version` = `revision` файла | AK-14, AK-43 | Proposed |
 | [0007](0007-change-password-rotates-vault-key.md) | Смена пароля заменяет ключ сейфа | AK-53 | Accepted |
+| [0008](0008-nearby-nfc-experimental.md) | Передача заметок Nearby/NFC — экспериментально, вне MVP; имя продукта Anchorkeep | MAIN-71, MAIN-70 | Accepted |

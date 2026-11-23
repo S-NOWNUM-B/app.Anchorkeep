@@ -17,8 +17,10 @@
 
 ## Стек
 - Flutter (stable), Dart, Material 3, flutter_riverpod, go_router
-- Крипто: `cryptography` + `cryptography_flutter`, `flutter_secure_storage`
-- Хранение: `dart:io`, `path_provider`, `path`, `file_picker`
+- Крипто: `cryptography` + `cryptography_flutter`
+- Хранение: `dart:io`, `path_provider`, `path`, `file_picker`, `shared_preferences`
+- Передача заметок (экспериментально, вне MVP, ADR 0008): `nearby_connections`, `permission_handler`
+- UI-иконки: `lucide_flutter`
 - Блокчейн: Solana **Devnet**, Anchor (Rust) — программа `vault_registry`; Dart-клиент — пакет `solana` (espresso-cash)
 - Версии пакетов не придумывай: ставь через `flutter pub add` / `cargo add` и сверяй с pub.dev / docs.
 

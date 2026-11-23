@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:anchorkeep/core/vault/atomic_write.dart';
@@ -35,6 +36,20 @@ VaultHeader previewBackup(Uint8List bytes) {
     throw const FormatException('backup: файл слишком большой');
   }
   return VaultFile.decode(bytes).header;
+}
+
+/// Заголовок сейфа, который лежит на диске, без пароля: версия и vaultId
+/// открыты. Нужен, чтобы сравнить бэкап с текущим сейфом и когда тот
+/// заблокирован (на экране входа открытой сессии нет). `null`, если файла
+/// нет или он повреждён.
+Future<VaultHeader?> readCurrentVaultHeader(String vaultPath) async {
+  final file = File(vaultPath);
+  if (!await file.exists()) return null;
+  try {
+    return previewBackup(await file.readAsBytes());
+  } on FormatException {
+    return null;
+  }
 }
 
 ImportKind classifyImport(VaultHeader backup, VaultHeader? current) {

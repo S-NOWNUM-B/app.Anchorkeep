@@ -271,7 +271,7 @@ class _BackupWorkspaceState extends ConsumerState<BackupWorkspace> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BackupFileTile(
-            name: _exportName ?? 'ciphervault.akbackup',
+            name: _exportName ?? 'anchorkeep.akbackup',
             subtitle: tr(
               context,
               'Зашифрованный файл .akbackup',
@@ -489,8 +489,8 @@ class _BackupChainViewState extends ConsumerState<BackupChainView> {
             _anchoredRevision = null;
             _message = tr(
               context,
-              'Выбранный файл не является бэкапом CipherVault.',
-              'The selected file is not a CipherVault backup.',
+              'Выбранный файл не является бэкапом Anchorkeep.',
+              'The selected file is not a Anchorkeep backup.',
             );
           });
         }

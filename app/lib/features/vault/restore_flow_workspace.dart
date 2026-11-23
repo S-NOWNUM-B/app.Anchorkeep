@@ -29,6 +29,7 @@ class VaultRestoreFlow extends ConsumerStatefulWidget {
     this.initialBytes,
     this.fetchRecord,
     this.unlockBackup,
+    this.currentHeader,
   });
   final bool standalone;
   final VoidCallback? onCancel;
@@ -36,6 +37,10 @@ class VaultRestoreFlow extends ConsumerStatefulWidget {
   final FetchVaultRecord? fetchRecord;
   final Future<VaultSession> Function(Uint8List bytes, String password)?
   unlockBackup;
+
+  /// Заголовок сейфа на устройстве (в тестах подменяется; по умолчанию —
+  /// файл на диске, читается без пароля).
+  final Future<VaultHeader?> Function()? currentHeader;
 
   @override
   ConsumerState<VaultRestoreFlow> createState() => _VaultRestoreFlowState();
@@ -46,6 +51,7 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
   Uint8List? _bytes;
   String? _fileName;
   VaultHeader? _header;
+  VaultHeader? _current;
   _RestoreStep _step = _RestoreStep.pick;
   AnchorStatus? _status;
   ImportKind? _kind;
@@ -150,6 +156,11 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
       final preview =
           await (widget.unlockBackup?.call(_bytes!, _password.text) ??
               unlockVault(_bytes!, _password.text));
+      // Сессия есть только у открытого сейфа; на экране входа сравниваем
+      // с файлом на диске, иначе перезапись выглядит как «создание».
+      final current =
+          ref.read(vaultSessionProvider)?.header ??
+          await (widget.currentHeader?.call() ?? _headerOnDisk());
       AnchorStatus status;
       try {
         final owner = solanaOwner(preview.payload);
@@ -170,10 +181,8 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
       if (mounted) {
         setState(() {
           _status = status;
-          _kind = classifyImport(
-            _header!,
-            ref.read(vaultSessionProvider)?.header,
-          );
+          _current = current;
+          _kind = classifyImport(_header!, current);
           _step = _RestoreStep.confirm;
         });
       }
@@ -190,6 +199,38 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<VaultHeader?> _headerOnDisk() async =>
+      readCurrentVaultHeader(await ref.read(vaultPathProvider.future));
+
+  /// Что будет с сейфом на устройстве: каждый случай говорит об этом прямо,
+  /// особенно когда бэкап старее и свежие записи пропадут.
+  String _replaceMessage(BuildContext context) {
+    final backupVersion = _header?.revision ?? 0;
+    final currentVersion = _current?.revision ?? 0;
+    return switch (_kind) {
+      ImportKind.newVault => tr(
+        context,
+        'На устройстве будет создан сейф из выбранной копии.',
+        'A vault will be created from this backup.',
+      ),
+      ImportKind.sameVaultOlder => tr(
+        context,
+        'Эта копия старее сейфа на устройстве (версия $backupVersion против $currentVersion). Записи, добавленные позже, будут потеряны. Отменить нельзя.',
+        'This backup is older than the vault on this device (version $backupVersion vs $currentVersion). Entries added later will be lost. This cannot be undone.',
+      ),
+      ImportKind.differentVault => tr(
+        context,
+        'Это копия другого сейфа: сейф на устройстве будет заменён целиком. Отменить нельзя.',
+        'This is a backup of a different vault: the vault on this device will be replaced entirely. This cannot be undone.',
+      ),
+      _ => tr(
+        context,
+        'Текущий сейф будет заменён. Отменить это действие нельзя.',
+        'The current vault will be replaced. This cannot be undone.',
+      ),
+    };
   }
 
   Future<void> _restore() async {
@@ -360,8 +401,7 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
               rows: [
                 (
                   tr(context, 'Текущая ревизия', 'Current revision'),
-                  (ref.watch(vaultSessionProvider)?.header.revision ?? '—')
-                      .toString(),
+                  (_current?.revision ?? '—').toString(),
                 ),
                 (
                   tr(context, 'В файле', 'In file'),
@@ -371,17 +411,7 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
             ),
             const SizedBox(height: 13),
             BackupNotice(
-              message: _kind == ImportKind.newVault
-                  ? tr(
-                      context,
-                      'На устройстве будет создан сейф из выбранной копии.',
-                      'A vault will be created from this backup.',
-                    )
-                  : tr(
-                      context,
-                      'Текущий сейф будет заменён. Отменить это действие нельзя.',
-                      'The current vault will be replaced. This cannot be undone.',
-                    ),
+              message: _replaceMessage(context),
               icon: LucideIcons.triangleAlert,
               tone: BackupNoticeTone.error,
             ),
@@ -768,8 +798,7 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
               rows: [
                 (
                   tr(context, 'Текущая ревизия', 'Current revision'),
-                  (ref.watch(vaultSessionProvider)?.header.revision ?? '—')
-                      .toString(),
+                  (_current?.revision ?? '—').toString(),
                 ),
                 (
                   tr(context, 'В файле', 'In file'),
@@ -779,17 +808,7 @@ class _VaultRestoreFlowState extends ConsumerState<VaultRestoreFlow> {
             ),
             const SizedBox(height: 13),
             BackupNotice(
-              message: _kind == ImportKind.newVault
-                  ? tr(
-                      context,
-                      'На устройстве будет создан сейф из выбранной копии.',
-                      'A vault will be created from this backup.',
-                    )
-                  : tr(
-                      context,
-                      'Текущий сейф будет заменён. Отменить это действие нельзя.',
-                      'The current vault will be replaced. This cannot be undone.',
-                    ),
+              message: _replaceMessage(context),
               icon: LucideIcons.triangleAlert,
               tone: _kind == ImportKind.newVault
                   ? BackupNoticeTone.neutral

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:anchorkeep/core/security/auto_lock.dart';
 import 'package:anchorkeep/core/security/auto_lock_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -78,4 +81,30 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     expect(locks, 0);
   });
+
+  testWidgets(
+    'сворачивание во время системного диалога не блокирует, после — блокирует',
+    (tester) async {
+      var locks = 0;
+      await pumpScope(tester, () => locks++);
+      final b = tester.binding;
+      final dialog = Completer<void>();
+      final job = AutoLockPause.during(() => dialog.future);
+
+      b.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      b.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      b.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      expect(locks, 0, reason: 'диалог файла не повод блокировать');
+
+      b.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      b.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      b.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      dialog.complete();
+      await job;
+
+      b.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      b.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      expect(locks, 1, reason: 'обычное сворачивание снова блокирует');
+    },
+  );
 }

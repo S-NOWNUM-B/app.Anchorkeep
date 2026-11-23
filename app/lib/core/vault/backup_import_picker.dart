@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:anchorkeep/core/security/auto_lock.dart';
 import 'package:anchorkeep/core/vault/backup_import.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -16,7 +17,9 @@ class PickedBackup {
 }
 
 Future<PickedBackup?> pickBackupFile() async {
-  final selected = await FilePicker.pickFile(dialogTitle: 'Выберите бэкап');
+  final selected = await AutoLockPause.during(
+    () => FilePicker.pickFile(dialogTitle: 'Выберите бэкап'),
+  );
   final path = selected?.path;
   if (path == null) return null;
   final file = File(path);

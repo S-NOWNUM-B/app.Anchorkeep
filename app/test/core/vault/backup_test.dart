@@ -41,7 +41,7 @@ void main() {
           .join();
       expect(
         backupFileName(h, fixedNow),
-        'ciphervault-$prefix-r3-20261021-090507.akbackup',
+        'anchorkeep-$prefix-r3-20261021-090507.akbackup',
       );
     },
   );
