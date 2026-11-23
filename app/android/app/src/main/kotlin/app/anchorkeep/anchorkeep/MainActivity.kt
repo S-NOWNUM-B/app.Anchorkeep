@@ -29,7 +29,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        nfcChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ciphervault/nearby_nfc")
+        nfcChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "anchorkeep/nearby_nfc")
         nfcChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "available" -> result.success(mapOf(

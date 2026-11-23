@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="nearby_hce_description">CipherVault nearby pairing</string>
+    <string name="nearby_hce_description">Anchorkeep nearby pairing</string>
 </resources>

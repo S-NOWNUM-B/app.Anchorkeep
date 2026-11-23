@@ -35,7 +35,7 @@ class VaultBrand extends StatelessWidget {
         if (showName) ...[
           const SizedBox(width: 9),
           Text(
-            'CipherVault',
+            'Anchorkeep',
             style: TextStyle(
               color: colors.ink,
               fontSize: compact ? 14 : 17,

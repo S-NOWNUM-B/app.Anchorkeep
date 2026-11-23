@@ -210,8 +210,8 @@ class _NearbyTransferDialogState extends ConsumerState<NearbyTransferDialog>
         );
         description = tr(
           context,
-          'Откройте CipherVault на обоих устройствах. NFC определит устройство, а заметка пойдёт по локальному каналу.',
-          'Open CipherVault on both devices. NFC selects the device; the note travels over a local connection.',
+          'Откройте Anchorkeep на обоих устройствах. NFC определит устройство, а заметка пойдёт по локальному каналу.',
+          'Open Anchorkeep on both devices. NFC selects the device; the note travels over a local connection.',
         );
         icon = LucideIcons.smartphoneNfc;
       case NearbyStage.finding:

@@ -6,7 +6,7 @@ import android.os.Bundle
 /** NFC отдаёт только одноразовый идентификатор Nearby, никогда текст заметки. */
 class NearbyHceService : HostApduService() {
     companion object {
-        // Proprietary AID для CipherVault nearby handshake.
+        // Proprietary AID для Anchorkeep nearby handshake.
         val aid = byteArrayOf(0xF0.toByte(), 0x43, 0x56, 0x54, 0x4E, 0x46, 0x43, 0x01)
         @Volatile var token: String? = null
     }

@@ -37,7 +37,7 @@ class NearbyTransferController extends ChangeNotifier {
   }
 
   final Future<void> Function(String title, String text) saveNote;
-  static const _channel = MethodChannel('ciphervault/nearby_nfc');
+  static const _channel = MethodChannel('anchorkeep/nearby_nfc');
   static const _serviceId = 'app.anchorkeep.anchorkeep';
   final _nearby = Nearby();
   final Map<String, String> _found = {};
@@ -88,7 +88,7 @@ class NearbyTransferController extends ChangeNotifier {
     try {
       await _prepare(requireHce: false);
       final started = await _nearby.startDiscovery(
-        'CipherVault',
+        'Anchorkeep',
         Strategy.P2P_POINT_TO_POINT,
         serviceId: _serviceId,
         onEndpointFound: (id, name, _) {
@@ -159,7 +159,7 @@ class NearbyTransferController extends ChangeNotifier {
   Future<void> _request(String id) async {
     try {
       final requested = await _nearby.requestConnection(
-        'CipherVault',
+        'Anchorkeep',
         id,
         onConnectionInitiated: _onConnectionInitiated,
         onConnectionResult: _onConnectionResult,

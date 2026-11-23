@@ -448,10 +448,10 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('CipherVault'), findsOneWidget);
+    expect(find.text('Anchorkeep'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Passwords')).dy -
-          tester.getTopLeft(find.text('CipherVault')).dy,
+          tester.getTopLeft(find.text('Anchorkeep')).dy,
       greaterThan(45),
     );
     expect(find.byTooltip('Switch to dark theme'), findsOneWidget);
@@ -551,11 +551,11 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('CipherVault'), findsOneWidget);
+    expect(find.text('Anchorkeep'), findsOneWidget);
     expect(find.byTooltip('Switch to dark theme'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Notes')).dy -
-          tester.getTopLeft(find.text('CipherVault')).dy,
+          tester.getTopLeft(find.text('Anchorkeep')).dy,
       greaterThan(45),
     );
     await tester.tap(find.text('Add first note'));
@@ -637,7 +637,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('CipherVault'), findsOneWidget);
+    expect(find.text('Anchorkeep'), findsOneWidget);
     expect(find.text('My notes'), findsOneWidget);
     expect(find.text('1 note · on this device only'), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, 'missing');

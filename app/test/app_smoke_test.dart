@@ -68,7 +68,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('CipherVault'), findsOneWidget);
+    expect(find.text('Anchorkeep'), findsOneWidget);
     expect(find.text('Создать сейф'), findsOneWidget);
   });
 
